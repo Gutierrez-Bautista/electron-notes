@@ -105,4 +105,30 @@ app.whenReady().then(() => {
 
 Para ejecutar nuestro proyecto es tan simple como ejecutar el script que configuramos con anterioridad `npm run dev` o `yarn run dev`.
 
-Puede verse éste ejemplo en [project-1](./project-1/)
+## Procesos en Electron
+
+Si nosotros ejecutamos nuestro ejemplo anterior y abrimos el Administrador de Tareas (TM) o el Monitor de Actividad (AM) y buscamos Electron veremos que hay 4 procesos, a nosotros nos de momento nos interesa diferenciar entre dos procesos, el principar y el de renderizado. Si bien no podemos diferenciarlos facilmente desde el TM o AM la diferencia entre ambos es sencilla.
+
+El proceso principal es único y es el que envuelve al punto de entrada de la aplicación (`main.js`) el cual se ejecuta con NodeJS.
+
+Por otro lado puede haber varios procesos de renderizado diferentes, uno por cada ventana, que son ejecutados con Chromium y son los encargados de gestionar lo que se ve en las ventanas.
+
+Es importante entender esto porque hay muchas ocasiones en las que vamos a querer hacer algo en nuestro proceso principal y que esto afecte a las ventanas pero para ello debemos encargarnos de comunicar los procesos nosotros mismos.
+
+## Terminar Proceso
+
+Es importante saber cómo terminar un proceso desde el código, sobre todo porque en la mayoría de OS, a excepción de MacOS, al cerrar todas las ventanas el proceso principal no se termina.
+
+Para terminar el proceso principal y, por ende, cerrar completamente la aplicación es tan simple como llamar al método `quit()` de `app`.
+
+Para hacer esto cuando se cierran todas las ventanas lo que debemos hacer es detectar el evento `window-all-closed` con el método `on()` de `app` como vemos a continuación:
+
+```js
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') { // 'darwin' hacer referencia a MacOS
+    app.quit()
+  }
+})
+```
+
+Se puede ver todo el código de ejemplo hasta ahora en [project-1](./project-1/)
