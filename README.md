@@ -29,9 +29,9 @@ Muchas aplicaciones muy conocidas e importantes fueron creadas con Electron, ent
 
 ## Crear proyecto de Electron
 
-Para crear un proyecto de Electron lo primero es crear el directorio e inicializar un proyecto con npm, yarn, pnpm o el administrador de paquetes de preferencia, eso sí, npm y yarn son los únicos con los que se garantiza compatibilidad pero con pnpm también es posible (desconozco si se puede con bun).
+Para crear un proyecto de Electron lo primero es crear el directorio e inicializar un proyecto con npm o yarn
 
-En segundo lugar instalamos la dependencia de desarrollo de Electron con `npm i electron -D`, `yarn add electron -D` o `pnpm add electron -D`.
+En segundo lugar instalamos la dependencia de desarrollo de Electron con `npm i electron -D` o `yarn add electron -D`.
 
 En tercer lugar es importante crear el archivo `index.js` o `main.js` (según se prefiera) ya que es el punto de entrada de la aplicación de escritorio. Debemos asegurarnos que en el package.json la propiedad `"main"` tenga un valor igual al nombre de archivo del punto de entrada.
 
@@ -102,5 +102,7 @@ app.whenReady().then(() => {
   createWindow()
 })
 ```
+
+Para ejecutar nuestro proyecto es tan simple como ejecutar el script que configuramos con anterioridad `npm run dev` o `yarn run dev`.
 
 Puede verse éste ejemplo en [project-1](./project-1/)
