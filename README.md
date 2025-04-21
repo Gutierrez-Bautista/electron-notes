@@ -132,3 +132,290 @@ app.on('window-all-closed', () => {
 ```
 
 Se puede ver todo el código de ejemplo hasta ahora en [project-1](./project-1/)
+
+## Menús Nativos
+
+Un menú nativo hace referencia a la barra de navegación que muchas aplicaciones tienen, como por ejemplo la de VS Code que se ve a continuación:
+
+![VS Code menu image](./images/native-menu-example.png)
+
+Para crear un menú nativos como este nos apoyaremos de la clase `Menu` que nos proporciona Electron. Hay muchas formas de crear un menú con esta clase pero la más sencilla es por medio de una plantilla (template), veremos la estructura de una plantilla un poco más adelante.
+
+Una vez tengamos la platilla usaremos el método estático `buildFromTemplate` de la clase `Menu` pasandole nuestra plantilla como argumento, esto devolverá una instancia de `Menu` basada en nuestra plantilla. Por último usando el método `setApplicationMenu` de `Menu` pasandole la instancia creada por `buildFromTemplate` Electron se encargará de que aparezca en la aplicación
+
+```js
+const template = [
+  // ...
+]
+
+const menu = Menu.buildFromTemplate(template)
+
+Menu.setApplicationMenu(menu)
+```
+
+### Plantilla de un Menú
+
+La plantilla de un menú tiene una estructura muy simple, es un Array de objetos que debe cumplir con el tipo `MenuTemplate` que se define a continuación:
+
+```ts
+enum Roles {
+  'undo', 'redo', 'cut', 'copy', 'paste', 'pasteAndMatchStyle', 'delete', 'selectAll', 'reload',
+  'forceReload', 'toggleDevTools', 'resetZoom', 'zoomIn', 'zoomOut', 'toggleSpellChecker',
+  'togglefullscreen', 'window', 'minimize', 'close', 'help', 'about', 'services', 'hide', 'hideOthers',
+  'unhide', 'quit', 'showSubstitutions', 'toggleSmartQuotes', 'toggleSmartDashes', 'toggleTextReplacement',
+  'startSpeaking', 'stopSpeaking', 'zoom', 'front', 'appMenu', 'fileMenu', 'editMenu', 'viewMenu',
+  'shareMenu', 'recentDocuments', 'toggleTabBar', 'selectNextTab', 'selectPreviousTab', 'showAllTabs',
+  'mergeAllWindows', 'clearRecentDocuments', 'moveTabToNewWindow', 'windowMenu'
+}
+
+enum Types {
+  'normal', 'separator', 'submenu',
+  'checkbox', 'radio'
+}
+
+interface MenuItemProps {
+  label?: string
+  click?: () => void
+  role?: Roles
+  type?: Types
+  enabled?: boolean
+}
+
+interface MenuItem extends MenuItemProps {
+  submenu?: MenuItem[]
+}
+
+type MenuTemplate = MenuItem[]
+```
+
+Hay más propiedades que puede tener un item de un menú pero aquí están algunas de las más básicas, para ver el resto ir a la [documentación](https://www.electronjs.org/docs/latest/api/menu-item)
+
+Veamos cada una de las propiedades por separado
+
+- label: El texto con el que se mostrará el item.
+- click: función que se ejecuta al hacer click en el item.
+- role: Los roles hacen referencia a funcionalidades estandar de un menú como lo es por ejemplo un menú de archivo (fileMenu), estos están para que no tengamos que implementarlos manualmente y en general lo mejor es usarlos en la medida de lo posible.
+- type: Hace referencia al tipo de botón o elemento que es, un botón `normal`, un separador, un submenú, etc. En caso de que asignemos un submenu no es necesario el tipo "submenu" mientra que en caso de que sea un separador lo normal es no especificar ninguna otra propiedad.
+- enabled: si es `false` el item se podrá de color gris y no podremos hacerle clic.
+- submenu: Nos permite hacer un menú que se desprenda de ese item.
+
+### Ejemplo de Menú
+
+Suponagamos que queremos un menú con la siguiente estructura
+
+```txt
+root -- 
+      |-- File
+      |     |-- Exit
+      |
+      |-- View
+      |     |-- reload
+      |     |-- forceReload
+      |     |-- toggleDevTools
+      |     |-- togglefullscreen
+      |
+      |-- Settings
+             |---- Langs
+             |       |--- English
+             |       |--- Spanish
+             |
+             |---- Themes
+                     |--- Light
+                     |--- Dark
+```
+
+Vayamos apartado por apartados
+
+#### File
+
+La estructura de File es la más simple pero tiene algunos conceptos importantes, vamos primero con el código y después lo explicamos
+
+```js
+{
+  label: 'File',
+  submenu: [
+    process.platform === 'darwin' ? { role: 'close' } : { role: 'quit' }
+  ]
+}
+```
+
+El label es simple pero porqué usamos un submenú y porqué dependiendo de si el OS es MacOS o no usamos un rol distinto, bueno veamoslo.
+
+En primer lugar el submenú es para que cuando hagamos click sobre "File" nos muestre la opción de salir/cerrar, además que nos permite que sea más fácil a futuro agregar otras opciones relacionadas.
+
+Por otro lado la diferencia entre los roles `close` y `quit` está en que el primero cierra la ventana mientras que el segundo termina la aplicación, si estamos en MacOS con cerrar la ventana es suficiente porque el OS se encarga de terminar la aplicación si no quedan ventanas (cerrar una ventana requiere menos recursos) pero en otros OS como Windows o Linux esto no siempre ocurre por lo que tenemos que terminar la aplicación nosotros (consume más memoria).
+
+Este menú `File` que creamos es exactamente igual al creado por el rol `fileMenu`
+
+```js
+{ role: 'fileMenu' }
+```
+
+#### View
+
+En el caso de View no hay nada raro pero tendremos que explicar algunos roles más y el tipo `separator`
+
+```js
+{
+  label: 'View',
+  submenu: [
+    { role: 'reload' },
+    { role: 'forceReload' },
+    { role: 'toggleDevTools' },
+    { type: 'separator' },
+    { role: 'togglefullscreen' }
+  ]
+}
+```
+
+Roles:
+- reload: Recarga la ventana actual.
+- forceReload: Recarga la ventana actual ignorando el cache.
+- toggleDevTools: Muestra/esconde las herramientas de desarrollo del navegador (recordemos que Electron ejecuta nuestra app en un navegador incorporado).
+- togglefullscreen: Alterna el modo de pantalla completa.
+
+Separator: Lo que hace es dibujar una linea para que el usuario entienda qué opciones forman un grupo entre sí sin la necesidad de crear submenú.
+
+Por otro lado este menú `View` es igual al creado por el rol `viewMenu`
+
+```js
+{ role: 'viewMenu' }
+```
+
+#### Settings
+
+No vamos a hacer funcional las opciones de lenguaje y tema, simplemente veremos un ejemplo de la propiedad `click` de los items de los menús
+
+```js
+{
+label: 'Settings',
+submenu: [
+  {
+    label: 'Langs',
+    submenu: [
+      {
+        label: 'English',
+        click: () => { console.log('English') }
+      },
+      {
+        label: 'Spanish',
+        click: () => { console.log('Spanish') }
+      }
+    ]
+  },
+  {
+    label: 'Themes',
+    submenu: [
+      {
+        label: 'Light',
+        click: () => { console.log('Light') }
+      },
+      {
+        label: 'Spanish',
+        click: () => { console.log('Dark') }
+      }
+    ]
+  }
+]
+}
+```
+
+Por ejemplo, al hacer click en el tema claro se imprimirá en consola el texto "Light".
+
+#### Ejemplo Completo
+
+Hay una cosa más que querriamos hacer y es separar la lógica de creación del menú en un archivo apartado, para hacer eso simplemente hacemos lo siguiente.
+
+```js
+// path: ./menu.js
+import { Menu } from 'electron'
+
+// Creamos una variable para validar más claramente si el OS es MacOS o no
+const isMac = process.platform === 'darwin'
+
+export const setupMenu = () => {
+  const template = [
+    // { role: 'fileMenu' }
+    {
+      label: 'File',
+      submenu: [
+        isMac ? { role: 'close' } : { role: 'quit' }
+      ]
+    },
+    // { role: 'viewMenu' }
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Settings',
+      submenu: [
+        {
+          label: 'Langs',
+          submenu: [
+            {
+              label: 'English',
+              click: () => { console.log('English') }
+            },
+            {
+              label: 'Spanish',
+              click: () => { console.log('Spanish') }
+            }
+          ]
+        },
+        {
+          label: 'Themes',
+          submenu: [
+            {
+              label: 'Light',
+              click: () => { console.log('Light') }
+            },
+            {
+              label: 'Spanish',
+              click: () => { console.log('Dark') }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+  
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
+}
+```
+
+Y para crearlo en nuestra aplicación es tan sencillo como importarlo en nuestro punto de entrada y llamar a la función
+
+```js
+// path: ./index.js
+import { app, BrowserWindow } from 'electron'
+import { setupMenu } from './menu.js'
+
+const createWindow = () => {
+  const win = new BrowserWindow({
+    width: 800,
+    height: 600
+  })
+
+  win.loadFile('index.html')
+}
+
+setupMenu()
+
+app.whenReady().then(() => {
+  createWindow()
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})
+```
