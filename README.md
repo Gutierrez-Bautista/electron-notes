@@ -181,7 +181,7 @@ interface MenuItemProps {
   enabled?: boolean
 }
 
-interface MenuItem extends MenuItemProps {
+type MenuItem = MenuItemProps & {
   submenu?: MenuItem[]
 }
 
