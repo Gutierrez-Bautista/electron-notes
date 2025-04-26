@@ -1,5 +1,3 @@
-# Electron
-
 - [Electron](#electron)
   - [¿Qué es Electron?](#qué-es-electron)
   - [Ventajas de Electron](#ventajas-de-electron)
@@ -18,6 +16,9 @@
       - [Settings](#settings)
       - [Ejemplo Completo](#ejemplo-completo)
   - [Comunicar Procesos](#comunicar-procesos)
+- [Electron, React y TypeScript](#electron-react-y-typescript)
+
+# Electron
 
 ## ¿Qué es Electron?
 
@@ -45,6 +46,7 @@ Muchas aplicaciones muy conocidas e importantes fueron creadas con Electron, ent
 
 - [Documentación oficial](https://www.electronjs.org/docs/latest/): No se encuentra del todo traducida al español.
 - [Introduccion a Electron por Midu Dev](https://www.youtube.com/watch?v=ir9yaSgbOdY): Bases de Electron explicadas en Español.
+- [Electron con React y TypeScript de freeCodeCamp](https://www.youtube.com/watch?v=fP-371MN0Ck)
 
 ## Crear proyecto de Electron
 
@@ -556,3 +558,10 @@ window.electronAPI.onUpdateTheme((evt, theme) => {
   root.style.setProperty('--scheme', theme) // cambiamos una custom property "--scheme" que es la que define el tema de la aplicación
 })
 ```
+
+# Electron, React y TypeScript
+
+Electron es un framework de JS, como tal, es posible usarlo con React y TypeScript (TS de ahora en más) y es lo que veremos a continuación.
+
+> [!WARNING]
+> IN PROGRESS...
