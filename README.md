@@ -82,12 +82,12 @@ Y para decir que queremos que la ventana renderice un archivo utilizamos el mét
 
 ```js
 const createWindow = () => {
-  const window = new BrowserWindow({
+  const mainWindow = new BrowserWindow({
     width: 800,
     height: 600
   })
 
-  window.loadFile('index.html')
+  mainWindow.loadFile('index.html')
 }
 ```
 
@@ -376,19 +376,6 @@ export const setupMenu = () => {
       label: 'Settings',
       submenu: [
         {
-          label: 'Langs',
-          submenu: [
-            {
-              label: 'English',
-              click: () => { console.log('English') }
-            },
-            {
-              label: 'Spanish',
-              click: () => { console.log('Spanish') }
-            }
-          ]
-        },
-        {
           label: 'Themes',
           submenu: [
             {
@@ -396,7 +383,7 @@ export const setupMenu = () => {
               click: () => { console.log('Light') }
             },
             {
-              label: 'Spanish',
+              label: 'Dark',
               click: () => { console.log('Dark') }
             }
           ]
@@ -441,5 +428,131 @@ app.on('window-all-closed', () => {
 
 ## Comunicar Procesos
 
-> [!WARNING]
-> IN PROGRESS
+A la hora de comunicar procesos nos apoyamos del IPC, Inter-Process Communication; este permite enviar eventos desde uno de los procesos de Electron y que el otro los escuche, veamoslo con el ejemplo del tema claro y oscuro.
+
+Como el cambio de tema es algo que ocurre en el menú (proceso principal) nosotros tenemos que emitir el evento desde menu, y escucharlo desde el renderer.
+
+Para hacer esto lo primero es pasarle al menú la ventana en cuestión (veremos por qué más adelante) para lo cual cambiaremos un poco el archivo `index.js`.
+
+```js
+// path: index.js
+import { app, BrowserWindow } from 'electron'
+import { setupMenu } from './menu.js'
+
+const createWindow = () => {
+  const win = new BrowserWindow({
+    width: 800,
+    height: 600
+  })
+
+  win.loadFile('index.html')
+
+  setupMenu(win)
+}
+
+app.whenReady().then(() => {
+  createWindow()
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})
+```
+
+Ahora nos dirigimos a `menu.js` para realizar los siguientes cambios:
+
+Primero, definir el parametro en la función `setupMenu`
+
+```js
+// path: menu.js
+export const setupMenu = (win) => {
+  // ...
+}
+```
+
+Segundo, cuando se hace click en una de las opciones de tema usaremos el método `win.webContents.send(eventName, value)` para emitir el evento.
+
+```js
+export const setupMenu = (win) => {
+  const template = [
+    // ...
+    {
+      label: 'Settings',
+      submenu: [
+        {
+          label: 'Themes',
+          submenu: [
+            {
+              label: 'Light',
+              click: () => win.webContents.send('change-theme', 'light') // nombre del evento "change-theme" y se emite con un valor 'light'
+            },
+            {
+              label: 'Dark',
+              click: () => win.webContents.send('change-theme', 'dark') // el valor del evento esta vez es 'dark'
+            }
+          ]
+        }
+      ]
+    }
+  ]
+  
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
+}
+```
+
+En tercer lugar, para poder escuchar el evento desde nuestro renderer debemos crear un archivo `preload.js` que se ejecutará antes de que se renderice la página, esto nos servirá para poder exponer ciertas constantes o funciones para que toda la aplicación pueda acceder a ellas. Antes de pasar al archivo `preload.js` en sí veremos como especificarle a la ventana que ese archivo debe ejecutarse antes del renderizado.
+
+```js
+import { app, BrowserWindow } from 'electron'
+import { setupMenu } from './menu.js'
+import { join as joinPath } from 'node:path'
+
+const createWindow = () => {
+  const win = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      preload: joinPath(__dirname, 'preload.js') // path al archivo
+    }
+  })
+
+  win.loadFile('index.html')
+
+  setupMenu(win)
+}
+
+// ...
+```
+
+Ahora sí, en `preload.js` lo que vamos a hacer es crear un **puente de contexto** que permitirá que nuestro renderer pueda acceder a ciertas partes de la API de Electron (por defecto no puede)
+
+```js
+// path: preload.js
+
+// En los Preload Scripts no podemos usar Modules, Electron sólo soporta CommonJS
+const { contextBridge, ipcRenderer } = require('electron')
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  onUpdateTheme: callback => { ipcRenderer.on('change-theme', callback) }
+})
+```
+
+El método `exposeInMainWorld` hace que toda la aplicación pueda acceder al objeto con el nombre que le especifiquemos, en este caso `'electronAPI'`
+
+Utilizamos `ipcRenderer` porque es el proceso de renderizado el que usará esa función.
+
+Antes de continuar cave aclarar que cuando IPC detecta un evento pasa al callback dos argumentos, el primero es el evento en sí y el segundo es el valor con el que se lanzó, en nuestro caso `'light'` o `'dark'`.
+
+Para usar ese método que creamos nos dirigimos a nuestro renderer y lo utilizamos de la siguiente manera
+
+```js
+// path: renderer.js
+window.electronAPI.onUpdateTheme((evt, theme) => {
+  const root = document.documentElement // obtenemos la raiz del documento (:root en CSS)
+
+  root.style.setProperty('--scheme', theme) // cambiamos una custom property "--scheme" que es la que define el tema de la aplicación
+})
+```
