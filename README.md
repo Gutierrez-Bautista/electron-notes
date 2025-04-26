@@ -1,5 +1,24 @@
 # Electron
 
+- [Electron](#electron)
+  - [¿Qué es Electron?](#qué-es-electron)
+  - [Ventajas de Electron](#ventajas-de-electron)
+  - [Desventajas de Electron](#desventajas-de-electron)
+  - [Aplicaciones Creadas con Electron](#aplicaciones-creadas-con-electron)
+  - [Recursos para Aprender Electron](#recursos-para-aprender-electron)
+  - [Crear proyecto de Electron](#crear-proyecto-de-electron)
+  - [Renderizar Ventanas HTML](#renderizar-ventanas-html)
+  - [Procesos en Electron](#procesos-en-electron)
+  - [Terminar Proceso](#terminar-proceso)
+  - [Menús Nativos](#menús-nativos)
+    - [Plantilla de un Menú](#plantilla-de-un-menú)
+    - [Ejemplo de Menú](#ejemplo-de-menú)
+      - [File](#file)
+      - [View](#view)
+      - [Settings](#settings)
+      - [Ejemplo Completo](#ejemplo-completo)
+  - [Comunicar Procesos](#comunicar-procesos)
+
 ## ¿Qué es Electron?
 
 Electron es un Framework de JavaScript (JS de ahora en más) que permite crear aplicaciones de escritorio con tecnologías web como HTML, CSS y JS que pueden ejecutarse en Windows, MacOS y Linux. Esto se logra gracias a incrustar Chromium y NodeJS dentro de la aplicación, lo que permite mantener un único código para la aplicación en todos los dispositivos.
@@ -419,3 +438,8 @@ app.on('window-all-closed', () => {
   }
 })
 ```
+
+## Comunicar Procesos
+
+> [!WARNING]
+> IN PROGRESS

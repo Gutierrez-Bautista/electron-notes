@@ -46,7 +46,7 @@ export const setupMenu = () => {
               click: () => { console.log('Light') }
             },
             {
-              label: 'Spanish',
+              label: 'Dark',
               click: () => { console.log('Dark') }
             }
           ]
