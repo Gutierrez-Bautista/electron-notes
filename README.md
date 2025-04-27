@@ -1,3 +1,6 @@
+# Tabla de Contenidos
+
+- [Tabla de Contenidos](#tabla-de-contenidos)
 - [Electron](#electron)
   - [¿Qué es Electron?](#qué-es-electron)
   - [Ventajas de Electron](#ventajas-de-electron)
@@ -17,6 +20,10 @@
       - [Ejemplo Completo](#ejemplo-completo)
   - [Comunicar Procesos](#comunicar-procesos)
 - [Electron, React y TypeScript](#electron-react-y-typescript)
+  - [Creación del proyecto](#creación-del-proyecto)
+    - [React y TypeScript](#react-y-typescript)
+    - [Electron](#electron-1)
+    - [Configurar TypeScript para Electron](#configurar-typescript-para-electron)
 
 # Electron
 
@@ -562,6 +569,61 @@ window.electronAPI.onUpdateTheme((evt, theme) => {
 # Electron, React y TypeScript
 
 Electron es un framework de JS, como tal, es posible usarlo con React y TypeScript (TS de ahora en más) y es lo que veremos a continuación.
+
+Antes de continuar, debido a que `yarn` es más rápido que `npm` usaremos la CLI de `yarn` de ahora en más. 
+
+## Creación del proyecto
+
+### React y TypeScript
+
+Lo primero es crear un proyecto de React y TS con Vite (al cual le agregaremos Electron más adelante), para ello ejecutamos el comando usual
+
+```sh
+yarn create vite <projectName>
+```
+
+Al no trabajar en una página web el directorio `./public` no nos sirve por lo que lo eliminaremos.
+
+Por otro lado nosotros vamos a querer tener todo el código de la aplicación dentro del directorio `./src` tanto el de React como el de Electron por lo que es recomendable crear dos dentro de este, una para la UI y otro para Electron. Acto seguido moveremos todos los archivos creados por Vite a la carpeta `ui`.
+
+Luego cambiamos nuestro `index.html` para que busque el script `main.tsx` en el lugar correcto.
+
+Después tenemos que cambiar la carpeta en la que Vite compilará nuestra aplicación y la ruta base de la aplicación, lo primero se debe a que por defecto Vite compila lo hace en `./dist` pero esto crea conflicto con Electron que también lo hace allí, como Vite es el único de los dos que permite cambiar el directorio de salida es el que debemos configurar, mientras que si no especificamos la ruta base la aplicación intentará buscar los archivos partiendo de la raiz del sistema de archivos.
+
+```ts
+// path: ./vite.config.ts
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react-swc'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  base: "./", // "./" es el directorio en el que se encuentra el archivo
+  build: {
+    outDir: "dist-react" // podemos pasarle el nombre que queramos
+  }
+})
+
+```
+
+Recordemos actualizar nuestro `.gitignore` para que este directorio no sea subido a nuestro repositorio.
+
+### Electron
+
+Para agregar Electron a nuestro proyecto simplemente tenemos que instalarlo y hacer algunas cofiguraciones como las vistas con anterioridad:
+
+```sh
+yarn add electron -D
+```
+
+Acto seguido hacemos lo siguiente:
+
+- Creamos un archivo `./src/electron/main.js`
+- Hacer que renderice el archivo `./dist-react/index.html` con `path.join(app.getAppPath(), 'dist-react', 'index.html')`
+- Configurar el `package.json` para que el script principal sea `./src/electron/main`
+- Configurar el `package.json` para tener dos script de desarrollo uno `dev:react` que ejectue solo la UI y otro `dev:electron` que ejecute la aplicación de Electron
+
+### Configurar TypeScript para Electron
 
 > [!WARNING]
 > IN PROGRESS...
