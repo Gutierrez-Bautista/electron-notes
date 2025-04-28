@@ -24,6 +24,8 @@
     - [React y TypeScript](#react-y-typescript)
     - [Electron](#electron-1)
     - [Configurar TypeScript para Electron](#configurar-typescript-para-electron)
+    - [Electron Builder](#electron-builder)
+  - [Proceso de Desarrollo](#proceso-de-desarrollo)
 
 # Electron
 
@@ -588,7 +590,7 @@ Por otro lado nosotros vamos a querer tener todo el código de la aplicación de
 
 Luego cambiamos nuestro `index.html` para que busque el script `main.tsx` en el lugar correcto.
 
-Después tenemos que cambiar la carpeta en la que Vite compilará nuestra aplicación y la ruta base de la aplicación, lo primero se debe a que por defecto Vite compila lo hace en `./dist` pero esto crea conflicto con Electron que también lo hace allí, como Vite es el único de los dos que permite cambiar el directorio de salida es el que debemos configurar, mientras que si no especificamos la ruta base la aplicación intentará buscar los archivos partiendo de la raiz del sistema de archivos.
+Después tenemos que cambiar la carpeta en la que Vite compilará nuestra aplicación y la ruta base de la aplicación, lo primero se debe a que por defecto Vite compila en `./dist` pero esto crea conflicto con Electron que también lo hace allí, como Vite es el único de los dos que permite cambiar el directorio de salida es el que debemos configurar, mientras que si no especificamos la ruta base la aplicación intentará buscar algunos archivos partiendo de la raiz del sistema de archivos.
 
 ```ts
 // path: ./vite.config.ts
@@ -606,11 +608,11 @@ export default defineConfig({
 
 ```
 
-Recordemos actualizar nuestro `.gitignore` para que este directorio no sea subido a nuestro repositorio.
+Recordemos actualizar nuestro `.gitignore` para que este directorio de compilación no sea subido a nuestro repositorio.
 
 ### Electron
 
-Para agregar Electron a nuestro proyecto simplemente tenemos que instalarlo y hacer algunas cofiguraciones como las vistas con anterioridad:
+Para agregar Electron a nuestro proyecto simplemente tenemos que instalarlo y hacer algunas configuraciones como las vistas con anterioridad:
 
 ```sh
 yarn add electron -D
@@ -625,5 +627,112 @@ Acto seguido hacemos lo siguiente:
 
 ### Configurar TypeScript para Electron
 
-> [!WARNING]
-> IN PROGRESS...
+Para poder usar TS con electron lo primero es decirle a la configuración de TS creada por Vite en `./tsconfig.app.json` que no valide nuestro código de Electron, esto para que podamos configurarlo correctamente nosotros, para ello agregamos lo siguiente al archivo
+
+```json
+// path: ./tsconfig.app.json
+{
+  // ...
+  "exclude": ["src/electron"]
+}
+```
+
+Ahora podemos ir a `./src/electron` y crear nuestro propio `tsconfig.json` el cual podría llegar a verse parecido a lo siguiente
+
+```json
+// path: ./src/electron/tsconfig.json
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ESNext",
+    "module": "NodeNext",
+    "outDir": "../../dist-electron", // path de salida, en nuestro caso creamos `dist-electron` en la raiz
+    "skipLibCheck": true
+  }
+}
+```
+
+tenemos que agreagar `dist-electron/` a nuestro `.gitignore`.
+
+Ahora debemos agregar un nuevo script al `package.json` para transpilar nuestro código de Electron
+
+```json
+{
+  // ...
+  "scripts": {
+    // ...
+    "transpile:electron": "tsc --project src/electron/tsconfig.json"
+  },
+  // ...
+}
+```
+
+Otra cosa que debemos cambiar en el `package.json` cuando vamos a trabajar Electron con TS es el archivo principal de la aplicación, que ahora debe ser `dist-electron/main.js`
+
+```json
+{
+  // ...
+  "main": "dist-electron/main.js",
+  // ...
+}
+```
+
+### Electron Builder
+
+Ahora llegó el momento de configurar cómo se va a empaquetar nuestra aplicación de Electron para que sea instalada.
+
+Para esto tenemos que instalar una dependecia aparte, ya que Electron no incluye un builder dentro de su API, las dos opciones más populares son `Forge`, la que aparece en la documentación, y `electron-builder`.
+
+En estos apuntes usaremos `electron-builder` ya que, aunque no tiene soporte por Electron, es el más configurable y el que posee una documentación más extensa
+
+```sh
+yarn add electron-builder -D
+```
+
+Para que electron builder pueda funcionar correctamente debemos hacer que yarn use `node_modules` tradicionales sin PnP para lo que agregaremos `nodeLinker: "node-modules"` a nuestro `.yarnrc.yml`.
+
+Ahora, para configurar el empaquetado de nuestra aplicación vamos a crear un archivo `./electron-builder.json` en el que especificaremos toda la configuración de empaquetado, algo como lo siguiente.
+
+```json
+// path: ./electron-builder.json
+{
+  "appId": "com.companyName.applicationName", // es un standard para nombrar la aplicación
+  "files": ["dist-electron", "dist-react"], // archivos que se incluiran en la app
+  "icon": "./path/to/desktopIcon.png" // idealmente un png de como mínimo 256x256
+  "mac": { // configuración de build para MacOS
+    "target": "dmg" // compilamos a un .dmg
+  },
+  "linux": {
+    "target": "AppImage",
+    "category": "categoryName" // Linux permite categorizar una aplicación (ej: Utility)
+  },
+  "win": {
+    "target": ["portable", "msi"] // para windows se empaqueta un portable y un .msi
+  }
+}
+```
+
+Por último tenemos que agregar los scripts a nuestro `package.json` para hacer en empaquetado completo de la aplicación
+
+```json
+{
+  // ...
+  "scripts": {
+    // ...
+    "dist:win": "yarn transpile:electron && yarn build && electron-builder --win --x64",
+    "dist:mac": "yarn transpile:electron && yarn build && electron-builder --mac --arm64",
+    "dist:linux": "yarn transpile:electron && yarn build && electron-builder --linux --x64"
+  },
+  // ...
+}
+```
+
+Estos scripts lo que hacen es transpilar el código de Electron a JS normal, compilar nuestro código de React con TS y finalmente hacer la build de nuestra aplicación para Windows, MacOS o Linux dependiendo de cuál script ejecutemos.
+
+En caso de que trabajemos en Windows es recomendable ejecutar estos scripts por primera vez como administrador porque `electron-builder` necesita instalar algunos paquetes.
+
+## Proceso de Desarrollo
+
+Ahora podemos seguir con el desarrollo de nuestra aplicación de la misma forma que lo hariamos con para navegador.
+
+Cuando queramos testear nuestra UI podemos sólo ejecutarla con `yarn dev:react`, si queremos probar nuestra app de Electron completa compilamos nuestra UI con `yarn build`, transpilamos nuestro TS de Electron con `yarn transpile:electron` y ejecutarla con `yarn dev:electron`.
